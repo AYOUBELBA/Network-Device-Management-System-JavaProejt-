@@ -5,7 +5,7 @@ users, and activity logs using Java.
 
 ## UML Class Diagram
 
-![Network Device Management UML](docs/DiagramClass.PNG)
+![Network Device Management UML](docs/UML-DiagramClass.PNG)
 
 ## Main Classes
 
