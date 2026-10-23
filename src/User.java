@@ -1,9 +1,12 @@
+import java.time.LocalDateTime;
+
 public class User{
     private int id;
     private String username;
     private String email;
     private String pwdhash;
     private String role;
+    private LocalDateTime CreatedAt;
     private boolean isActive;
 
     public User(int id, String username, String email, String pwdhash, String role) {
@@ -13,6 +16,7 @@ public class User{
         this.pwdhash = pwdhash;
         this.role = role;
         this.isActive = true;
+        this.CreatedAt = LocalDateTime.now();
     }
     public int getId() {
         return id;
