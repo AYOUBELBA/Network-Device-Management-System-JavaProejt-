@@ -1,0 +1,135 @@
+﻿# GUIDE DU CODE - GESTION RESEAU
+
+## 1. A quoi sert le projet ?
+
+Ce programme Java represente un petit gestionnaire d'equipements reseau. Il cree un routeur, un switch et un firewall, les range dans NetworkManager, affiche leurs informations et affiche deux alertes.
+
+C'est une simulation pedagogique. Aucun appareil reel n'est contacte. Les alertes, les mesures et les protocoles SNMP/SSH affichent ou generent des valeurs fictives.
+
+## 2. Demarrage du programme : Main.java
+
+La methode main est le point d'entree du programme.
+
+- Elle cree un objet NetworkManager.
+- Elle cree trois appareils avec un identifiant, une adresse IP et un ProtocolSimulator.
+- Elle choisit SNMP pour le routeur et SSH pour le switch et le firewall.
+- Elle appelle discover() pour afficher chaque appareil et son statut.
+- Elle cree deux objets Alert, un avec le canal EMAIL et un avec le canal SMS, puis demande au gestionnaire de les envoyer.
+
+Exemple :
+
+    new Router("R1", "192.168.1.1", new ProtocolSimulator("SNMP"))
+
+Cela cree un routeur R1 et lui fournit un simulateur configure pour afficher SNMP.
+
+## 3. NetworkManager.java : stockage et gestion
+
+NetworkManager garde les appareils dans trois collections. Chaque collection a un usage different :
+
+- List<NetworkDevice> devices : garde les appareils dans l'ordre d'ajout et permet de les parcourir.
+- Set<String> deviceIds : garde les identifiants uniques. LinkedHashSet preserve l'ordre d'insertion.
+- Map<String, NetworkDevice> devicesById : associe un identifiant a l'objet appareil correspondant. LinkedHashMap preserve l'ordre et permet de retrouver un appareil par son identifiant.
+
+### Methodes principales
+
+- addDevice(d) ajoute d'abord l'identifiant au Set. Si l'identifiant est deja present, l'appareil n'est pas ajoute. Sinon, l'appareil est place dans la List et dans la Map.
+- removeDevice(id) retire l'identifiant, puis l'appareil de la List et de la Map.
+- getDevicesArray() renvoie un tableau contenant les appareils actuellement dans la liste.
+- getDeviceIds() renvoie une copie du Set d'identifiants.
+- getDevicesById() renvoie une copie de la Map.
+- findDevice(id) fait une recherche dans la Map et renvoie un Optional. L'Optional est present si l'appareil existe, sinon il est vide.
+- getDevicesByStatus(status) utilise un stream et filter() pour ne garder que les appareils dont le statut est identique au texte fourni.
+- discover() parcourt la liste avec stream() et forEach() pour afficher chaque appareil.
+- raiseAlert(a) appelle send() sur l'alerte recue.
+
+Les collections internes sont modifiees par addDevice() et removeDevice(). Les methodes getDeviceIds() et getDevicesById() renvoient des copies : modifier ces copies ne change pas directement le gestionnaire.
+
+## 4. List, Set, Map et tableau
+
+Le projet contient plusieurs formes de stockage :
+
+- Un tableau, NetworkDevice[], a une taille fixe. getDevicesArray() en fabrique un a partir des appareils actuels.
+- Une List est une collection ordonnee. Ici, ArrayList est utilisee pour garder tous les appareils dans leur ordre d'ajout.
+- Un Set ne garde pas deux fois la meme valeur. Le Set des identifiants empeche l'ajout d'un appareil avec un identifiant deja utilise.
+- Une Map stocke des associations cle-valeur. Ici, la cle est l'identifiant et la valeur est l'appareil.
+
+## 5. NetworkDevice.java : classe de base
+
+NetworkDevice est abstraite : on ne cree pas directement un objet NetworkDevice. On cree une de ses classes concretes, comme Router, Switch ou Firewall.
+
+Elle stocke les donnees communes :
+
+- id : identifiant de l'appareil ;
+- ipAddress : adresse IP ;
+- status : statut sous forme de String ;
+- protocol : objet qui respecte l'interface ManagementProtocol.
+
+Elle declare les operations que chaque type d'appareil doit definir : reboot(), getInfo(), applyConfig() et backupConfig(). Elle fournit getId(), getStatus() et collectMetrics().
+
+collectMetrics() retourne une Map contenant cpu, une valeur aleatoire de 0 a 100, et bandwidth, une valeur aleatoire de 0 a 1000. Les nombres sont regeneres a chaque appel.
+
+Les constantes STATUS_UP, STATUS_DOWN et STATUS_DEGRADED indiquent les noms de statuts possibles. Le statut initial est UP. Le code actuel ne contient pas de methode pour modifier ce statut.
+
+## 6. Router, Switch et Firewall
+
+Ces trois classes heritent de NetworkDevice. Elles fournissent les methodes exigees par la classe de base et stockent chacune leur configuration sous forme de texte en memoire.
+
+- Router garde une routingTable, initialement "default". Son redemarrage envoie la commande "reboot".
+- Switch garde vlans, initialement "vlan1". Son redemarrage envoie la commande "reload".
+- Firewall garde rules, initialement "deny all". Son redemarrage envoie la commande "restart".
+
+Dans chaque classe, applyConfig(cfg) remplace la configuration et backupConfig() renvoie le texte actuellement stocke. Ces methodes ne creent pas de fichier de sauvegarde.
+
+## 7. ManagementProtocol et ProtocolSimulator
+
+ManagementProtocol est une interface. Elle definit les trois operations requises pour un protocole de gestion : open(ip), send(cmd) et close().
+
+ProtocolSimulator implemente cette interface. Son nom est passe au constructeur ("SNMP" ou "SSH"). Il affiche l'ouverture et la fermeture, puis renvoie un texte de confirmation lorsqu'une commande est envoyee.
+
+Quand reboot() est appelee, un appareil ouvre le protocole, envoie sa commande de redemarrage, affiche la reponse puis ferme le protocole. Main ne lance pas actuellement reboot().
+
+## 8. Alert.java
+
+Alert est une classe concrete unique pour les differents canaux. Son constructeur prend trois textes : le canal (par exemple EMAIL ou SMS), la severite (par exemple HIGH ou CRITICAL) et le message.
+
+send() affiche ces trois valeurs dans la console. Aucun vrai email ou SMS n'est transmis.
+
+## 9. Lambda et streams
+
+Une lambda est une petite action ou fonction passee a une methode. Par exemple, dans discover() :
+
+    d -> System.out.println(d.getInfo() + " -> " + d.getStatus())
+
+Pour chaque appareil d, cette lambda affiche son nom et son statut.
+
+Dans removeDevice(), la lambda utilisee par removeIf() est :
+
+    d -> d.getId().equals(id)
+
+Elle signifie : retirer de la liste les appareils dont l'identifiant est egal a id.
+
+Un stream permet de parcourir une collection et de lui appliquer des operations. getDevicesByStatus() utilise stream(), filter() et collect() pour fabriquer une liste contenant seulement les appareils avec le statut recherche.
+
+## 10. Lancer le programme
+
+Dans le dossier racine du projet, compiler :
+
+    javac -d out src/network/*.java
+
+Puis executer :
+
+    java -cp out network.Main
+
+Le programme affiche les trois appareils en statut UP, puis les alertes EMAIL et SMS.
+
+## 11. Fichiers Java actuels
+
+- Main.java : demarrage et exemple d'utilisation.
+- NetworkManager.java : ajout, suppression, recherche et affichage des appareils.
+- NetworkDevice.java : base abstraite des appareils et mesures simulees.
+- Router.java, Switch.java, Firewall.java : types concrets d'appareils.
+- ManagementProtocol.java : interface des operations de protocole.
+- ProtocolSimulator.java : simulation SNMP/SSH.
+- Alert.java : affichage des alertes.
+
+Le projet utilise aussi les types Java standard List, Set, Map et Optional. Les types Status, Monitorable et Configurable ne sont pas des fichiers separes dans la version actuelle.

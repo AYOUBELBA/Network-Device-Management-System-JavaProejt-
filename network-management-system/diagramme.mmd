@@ -1,0 +1,56 @@
+classDiagram
+direction TB
+class NetworkManager {
+  -devices: List~NetworkDevice~
+  -deviceIds: Set~String~
+  -devicesById: Map~String, NetworkDevice~
+  +addDevice(d)
+  +removeDevice(id)
+  +getDevicesArray() NetworkDevice[]
+  +getDeviceIds() Set~String~
+  +getDevicesByStatus(status) List~NetworkDevice~
+  +findDevice(id) Optional~NetworkDevice~
+  +discover()
+  +raiseAlert(a)
+}
+class ManagementProtocol {
+  <<interface>>
+  +open(ip)
+  +send(cmd)
+  +close()
+}
+class NetworkDevice {
+  <<abstract>>
+  #id: String
+  #ipAddress: String
+  #status: String
+  #protocol: ManagementProtocol
+  +reboot()*
+  +getInfo()*
+  +applyConfig(cfg)*
+  +backupConfig()*
+  +getStatus() String
+  +collectMetrics() Map
+}
+class Router
+class Switch
+class Firewall
+class ProtocolSimulator {
+  -name: String
+  +open(ip)
+  +send(cmd)
+  +close()
+}
+class Alert {
+  -channel: String
+  -severity: String
+  -message: String
+  +send()
+}
+NetworkManager o-- NetworkDevice
+NetworkManager ..> Alert
+NetworkDevice <|-- Router
+NetworkDevice <|-- Switch
+NetworkDevice <|-- Firewall
+NetworkDevice --> ManagementProtocol
+ManagementProtocol <|.. ProtocolSimulator
