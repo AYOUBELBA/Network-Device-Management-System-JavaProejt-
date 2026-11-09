@@ -1,19 +1,20 @@
-# Network Device Management System
+﻿# Java Network Management System
 
-A student project for managing network devices,
-users, and activity logs using Java.
+This project is a Java simulation for managing network devices: routers, switches, and firewalls. It demonstrates inheritance, interfaces, collections (`List`, `Set`, `Map`), streams, lambdas, and simulated alerts and protocols.
 
-## UML Class Diagram
+## Compile and run
 
-![Network Device Management UML](docs/UML-DiagramClass.PNG)
+```bash
+javac -d out src/network/*.java
+java -cp out network.Main
+```
 
-## Main Classes
+The program does not connect to real network devices. Protocols, alerts, and metrics are simulated.
 
-- **User:** Manages application users and roles.
-- **Device:** Stores network device information.
-- **Log:** Records operations performed on devices.
+## Project files
 
-## Technologies
-
-- Java
-- UML / StarUML
+- `src/network/` - Java source code
+- `Explication_code.txt` - explanation of the code in French
+- `diagramme.mmd` - Mermaid class diagram source
+- `network_management_class_diagram_with_status.html` - browser view of the class diagram
+- `Diagramme_classes_reseau.pdf` - PDF class diagram
